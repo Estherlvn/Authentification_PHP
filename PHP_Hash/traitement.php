@@ -58,15 +58,42 @@ if (isset($_GET["action"])) {
                 if($_POST["submit"]) {
                     // Connexion à la BDD
                     $pdo = new PDO("mysql:host=localhost;dbname=forum_ledlev;charset=utf8", "root", "");
-                    // on part du principe que la page login ne demande qu'un mail et un mdp
+                   
+                    // on filtre les champs
                     $email = filter_input(INPUT_POST, "email", FILTER_VALIDATE_EMAIL);
                     $password = filter_input(INPUT_POST, "password", FILTER_SANITIZE_FULL_SPECIAL_CHARS);
+              
+                    // si les filtres sont valides
+                    if($email && $password) {
+                        $requete = $pdo->prepare("SELECT * FROM membre WHERE email = :email");
+                        $requete->execute(["email" => $email]);
+                        $user = $requete->fetch();
+                        // var_dump($user);die; // renvoi un booléen false si il ne trouve pas le user en bdd
+                        if($user) { // si l'utilisateur existe 
+                            $hash = $user["password"];
+                            if(password_verify($password, $hash)) {
+                                $_SESSION["user"] = $user; // on stocke les infos en session et redirige vers home.php en cas de succès de la connexion
+                                header("Location: home.php");
+                            } else {  // si je n'arrive pas à me connecter, redirection vers
+                                header("Location: login.php"); exit;
+                            }
+                        } else { // redirection vers
+                            header("Location: login.php"); exit;
+                        }
+                    }
                 }
 
                 header("Location: login.php"); exit;
             break;
 
+            case "profile":
+                header("Location: profile.php"); exit;
+            break;
+
             case "logout":
-            exit;
+                unset($_SESSION["user"]);
+                header("Location: home.php"); exit;
+
+            break;
     }
 }
